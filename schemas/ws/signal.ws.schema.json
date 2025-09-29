@@ -1,0 +1,67 @@
+{
+  "type": "object",
+  "properties": {
+    "channel": {
+      "const": "signals"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "instrument": {
+      "type": "string"
+    },
+    "strategy": {
+      "type": "string",
+      "enum": [
+        "TPB_VWAP",
+        "ORB_15",
+        "VRB"
+      ]
+    },
+    "score": {
+      "type": "number"
+    },
+    "features": {
+      "type": "object"
+    },
+    "recommended": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "BUY",
+            "SELL"
+          ]
+        },
+        "entry": {
+          "type": "number"
+        },
+        "stop": {
+          "type": "number"
+        },
+        "target": {
+          "type": "number"
+        },
+        "risk_pct": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "side",
+        "entry",
+        "stop",
+        "risk_pct"
+      ]
+    }
+  },
+  "required": [
+    "channel",
+    "ts",
+    "instrument",
+    "strategy",
+    "score",
+    "recommended"
+  ]
+}

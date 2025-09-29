@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: FreeMode Orchestrator API
+  version: 0.8.1
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses: { '200': { description: OK } }
+  /api/v1/limits:
+    get:
+      summary: Read risk limits
+      responses: { '200': { description: OK } }
+  /api/v1/trade/intents:
+    post:
+      summary: Pre-trade risk check
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TradeIntent' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/RiskDecision' } } } }
+  /api/v1/orders:
+    post:
+      summary: Place order
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/OrderCommand' } } }
+      responses:
+        '202': { description: Accepted }
+  /api/v1/orders/{id}:
+    get:
+      summary: Order status
+      parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+      responses: { '200': { description: OK } }
+components:
+  schemas:
+    TradeIntent:
+      type: object
+      properties:
+        instrument: { type: string }
+        side: { type: string, enum: [BUY, SELL] }
+        intendedQty: { type: number }
+        entry: { type: number }
+        stop: { type: number }
+        strategy: { type: string }
+      required: [instrument, side, intendedQty, entry, stop, strategy]
+    RiskDecision:
+      type: object
+      properties:
+        allowed: { type: boolean }
+        reason: { type: string }
+        allowedQty: { type: number }
+    OrderCommand:
+      type: object
+      properties:
+        instrument: { type: string }
+        side: { type: string, enum: [BUY, SELL] }
+        qty: { type: number }
+        order_type: { type: string, enum: [MKT, LMT, STP, STP_LMT] }
+        limit_price: { type: number }
+        stop_price: { type: number }
+        tif: { type: string, enum: [DAY, GTC] }
+        bracket:
+          type: object
+          properties:
+            take_profit: { type: number }
+            stop_loss: { type: number }
+      required: [instrument, side, qty, order_type]

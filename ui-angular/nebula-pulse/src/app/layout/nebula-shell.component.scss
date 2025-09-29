@@ -1,0 +1,8 @@
+:host {
+	display: contents;
+}
+
+:host ::ng-deep a[routerLink].active {
+	background-color: rgba(34, 211, 238, 0.25);
+	color: #a5f3fc;
+}

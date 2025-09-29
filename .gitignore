@@ -1,0 +1,47 @@
+# Root ignore rules for AiTrader free mode workspace
+
+# Environment & secrets
+.env
+.env.*
+.vscode/
+*.code-workspace
+
+# OS artifacts
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/cache/
+
+# Test coverage
+coverage/
+**/coverage/
+
+# Misc tooling caches
+*.tgz
+*.tmp
+*.swp
+.idea/
+
+# SQL tooling
+*.dacpac
+*.bacpac
+
+# Docker artifacts
+*.pid

@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  orchestrator:
+    build: ../orchestrator-dotnet
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+    ports: ["8080:8080"]
+    depends_on: [seq]
+  seq:
+    image: datalust/seq:latest
+    environment:
+      - ACCEPT_EULA=Y
+    ports: ["5341:80"]
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports: ["1433:1433"]

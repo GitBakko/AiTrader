@@ -1,0 +1,59 @@
+mode: FREE
+timezone: "Europe/Rome"
+
+crypto:
+  provider: "binance"
+  ws_base: "wss://stream.binance.com:9443"
+  symbols: ["btcusdt","ethusdt","bnbusdt"]
+  streams: ["bookTicker","trade"]
+  klines_interval: "1m"
+
+stocks:
+  provider: "finnhub"
+  ws_url: "wss://ws.finnhub.io?token=${FINNHUB_API_KEY}"
+  symbols: ["AAPL","MSFT","NVDA","SPY","QQQ","DIA"]   # include ETF proxies for indices
+  channels: ["trade"]
+
+forex:
+  provider: "finnhub"
+  ws_url: "wss://ws.finnhub.io?token=${FINNHUB_API_KEY}"
+  pairs: ["EURUSD","GBPUSD","USDJPY"]
+  channels: ["forex"]
+
+commodities:
+  provider: "alphavantage"
+  base_url: "${ALPHAVANTAGE_BASE}"
+  api_key_env: "ALPHAVANTAGE_API_KEY"
+  symbols:
+    energy: ["WTI","BRENT","NATURAL_GAS"]
+    metals: ["COPPER"]
+    metals_fx: ["XAUUSD","XAGUSD"]   # via forex endpoint (CURRENCY_EXCHANGE_RATE)
+  polling_policy:
+    timezone_reset_utc: true
+    daily_quota: 25
+    default_interval_minutes: 360   # ~6h
+    backoff:
+      base_seconds: 10
+      max_seconds: 600
+
+execution:
+  broker: "paper"
+  slippage_model:
+    type: "spread_fraction"
+    fraction: 0.25
+  reject_rate_pct: 0.5
+
+risk:
+  per_trade_pct: 0.0035
+  daily_stop_pct: 0.02
+  weekly_stop_pct: 0.04
+
+strategies:
+  TPB_VWAP: { enabled: true, ema_len: 200, sma_len: 20, rsi_fast: 7, atr_len: 14, take_profit_R: [1.0, 2.0] }
+  ORB_15:   { enabled: true, or_minutes: 15, buffer_ticks: 0.5, stop_method: "halfOR_or_ATR" }
+  VRB:      { enabled: true, vwap_band_k: 2.0, sigma_window_min: 45 }
+
+ui:
+  transport: "websocket"
+  ws_endpoint: "/ws"
+  fallback_poll_ms: 0

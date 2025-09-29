@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "channel": {
+      "const": "alerts"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "DAILY_STOP_HIT",
+        "FEED_LOSS",
+        "BROKER_REJECT",
+        "SPREAD_SPIKE",
+        "RATE_LIMIT"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "INFO",
+        "WARN",
+        "CRIT"
+      ]
+    },
+    "detail": {
+      "type": "string"
+    },
+    "context": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "channel",
+    "ts",
+    "type",
+    "severity"
+  ]
+}

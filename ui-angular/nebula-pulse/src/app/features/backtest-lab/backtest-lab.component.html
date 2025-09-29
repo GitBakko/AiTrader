@@ -1,0 +1,94 @@
+<div class="flex flex-col gap-6">
+	<section ktuiCard="glass" class="p-6 shadow-lg shadow-cyan-500/10">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Strategy Telemetry</h2>
+			<span class="text-xs text-slate-500">Stream-derived metrics · {{ lastStreamTs() ? (lastStreamTs() | date:'short') : 'Waiting for data' }}</span>
+		</div>
+		<div class="mt-4 grid gap-4 sm:grid-cols-3">
+			@for (item of strategies(); track item.code) {
+				<div ktuiCard="surface" class="flex flex-col gap-3 p-4">
+					<div>
+						<p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ item.code }}</p>
+						<p class="mt-2 text-sm text-slate-100">{{ item.description }}</p>
+					</div>
+					<div class="grid grid-cols-2 gap-2 rounded-xl border border-white/5 bg-slate-950/60 p-3 text-xs text-slate-400">
+						<div>
+							<p class="text-[10px] uppercase tracking-[0.25em] text-slate-500">Signals</p>
+							<p class="text-lg font-semibold text-cyan-200">{{ item.signals }}</p>
+						</div>
+						<div>
+							<p class="text-[10px] uppercase tracking-[0.25em] text-slate-500">Risk Avg</p>
+							<p class="text-lg font-semibold" [ngClass]="riskTone(item.avgRisk)">{{ item.avgRisk !== null ? (item.avgRisk | percent:'1.2-2') : '—' }}</p>
+						</div>
+						<div>
+							<p class="text-[10px] uppercase tracking-[0.25em] text-slate-500">Score Avg</p>
+							<p class="text-lg font-semibold" [ngClass]="scoreTone(item.avgScore)">{{ item.avgScore !== null ? (item.avgScore | number:'1.2-2') : '—' }}</p>
+						</div>
+						<div>
+							<p class="text-[10px] uppercase tracking-[0.25em] text-slate-500">Last Signal</p>
+							<p class="text-sm text-slate-300">{{ item.lastSignalTs ? (item.lastSignalTs | date:'shortTime') : '—' }}</p>
+						</div>
+					</div>
+					<button type="button" [ktuiPill]="item.status === 'running' ? 'warning' : 'primary'" class="self-start" (click)="launchSimulation(item.code)">
+						{{ item.status === 'running' ? 'Running' : 'Simulate' }}
+					</button>
+				</div>
+			}
+		</div>
+	</section>
+
+	<section ktuiCard="surface" class="p-6 shadow-lg shadow-purple-500/10">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Live Signals Feed</h2>
+			<div class="flex items-center gap-3 text-xs text-slate-500">
+				<span>Total Signals {{ signalTotal() }}</span>
+				<span>Executions {{ executionTotal() }}</span>
+			</div>
+		</div>
+		<div class="mt-4 overflow-hidden rounded-2xl border border-white/5">
+			<table class="min-w-full divide-y divide-white/10 text-left text-sm">
+				<thead class="bg-white/5 text-xs uppercase tracking-[0.3em] text-slate-400">
+					<tr>
+						<th class="px-4 py-3">Timestamp</th>
+						<th class="px-4 py-3">Instrument</th>
+						<th class="px-4 py-3">Strategy</th>
+						<th class="px-4 py-3">Score</th>
+						<th class="px-4 py-3">Risk</th>
+						<th class="px-4 py-3">Side</th>
+						<th class="px-4 py-3">Entry</th>
+						<th class="px-4 py-3">Stop</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-white/5">
+					@for (signal of latestSignals(); track trackSignal($index, signal)) {
+						<tr class="bg-slate-900/30 hover:bg-slate-900/60">
+							<td class="px-4 py-3 text-xs text-slate-400">{{ signal.ts | date:'short' }}</td>
+							<td class="px-4 py-3 font-medium text-slate-100">{{ signal.instrument }}</td>
+							<td class="px-4 py-3 text-xs tracking-[0.2em] text-slate-400">{{ signal.strategy }}</td>
+							<td class="px-4 py-3 font-semibold" [ngClass]="scoreTone(signal.score)">{{ signal.score | number:'1.2-2' }}</td>
+							<td class="px-4 py-3 text-sm text-slate-200">{{ signal.recommended.risk_pct | percent:'1.2-2' }}</td>
+							<td class="px-4 py-3 text-xs"><span [ktuiBadge]="signal.recommended.side === 'BUY' ? 'success' : 'danger'">{{ signal.recommended.side }}</span></td>
+							<td class="px-4 py-3 text-sm text-slate-200">{{ signal.recommended.entry | number:'1.2-2' }}</td>
+							<td class="px-4 py-3 text-sm text-slate-200">{{ signal.recommended.stop | number:'1.2-2' }}</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+		@if (!latestSignals().length) {
+			<p class="mt-3 text-xs text-slate-500">Awaiting live signals from orchestrator stream.</p>
+		}
+	</section>
+
+	<section ktuiCard="surface" class="p-6 shadow-lg shadow-indigo-500/10">
+		<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Backtest Surface</h2>
+		<div class="mt-4 grid gap-4 md:grid-cols-2">
+			<div class="relative h-64 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 via-slate-950/40 to-slate-900/60">
+				<div class="absolute inset-0 flex items-center justify-center text-xs text-slate-500">Stream results from quant backtester (coming soon)</div>
+			</div>
+			<div class="relative h-64 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 via-slate-950/40 to-slate-900/60">
+				<div class="absolute inset-0 flex items-center justify-center text-xs text-slate-500">Compare live vs. model performance once metrics API is available</div>
+			</div>
+		</div>
+	</section>
+</div>

@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "properties": {
+    "channel": {
+      "const": "executions"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "order_id": {
+      "type": "string"
+    },
+    "exec_id": {
+      "type": "string"
+    },
+    "instrument": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "qty": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "NEW",
+        "PARTIAL",
+        "FILLED",
+        "CANCELLED",
+        "REJECTED"
+      ]
+    },
+    "liquidity": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "MAKER",
+        "TAKER",
+        null
+      ]
+    }
+  },
+  "required": [
+    "channel",
+    "ts",
+    "order_id",
+    "exec_id",
+    "instrument",
+    "price",
+    "qty",
+    "status"
+  ]
+}

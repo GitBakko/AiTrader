@@ -1,0 +1,126 @@
+<div class="flex flex-col">
+	<section ktuiCard="glass" class="p-6 shadow-lg shadow-purple-500/10">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Risk Limits</h2>
+			<button type="button" ktuiPill="primary" (click)="refreshLimits()">
+				Refresh
+			</button>
+		</div>
+		@if (loadingLimits()) {
+			<p class="mt-4 text-xs text-slate-400">Loading limits…</p>
+		} @else if (limitsError()) {
+			<p class="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+				{{ limitsError() }}
+			</p>
+		} @else if (riskLimits()) {
+			<div class="mt-4 grid gap-4 sm:grid-cols-3">
+				<div class="rounded-2xl border border-white/5 bg-slate-900/60 p-4">
+					<p class="text-xs uppercase tracking-[0.3em] text-slate-400">Per Trade</p>
+					<p class="mt-2 text-2xl font-semibold text-cyan-200">{{ riskLimits()!.per_trade_pct | percent:'1.2-2' }}</p>
+					<p class="text-xs text-slate-500">Max nominal risk per trade</p>
+				</div>
+				<div class="rounded-2xl border border-white/5 bg-slate-900/60 p-4">
+					<p class="text-xs uppercase tracking-[0.3em] text-slate-400">Daily Stop</p>
+					<p class="mt-2 text-2xl font-semibold text-rose-200">{{ riskLimits()!.daily_stop_pct | percent:'1.2-2' }}</p>
+					<p class="text-xs text-slate-500">Trading halted when reached</p>
+				</div>
+				<div class="rounded-2xl border border-white/5 bg-slate-900/60 p-4">
+					<p class="text-xs uppercase tracking-[0.3em] text-slate-400">Weekly Stop</p>
+					<p class="mt-2 text-2xl font-semibold text-rose-200">{{ riskLimits()!.weekly_stop_pct | percent:'1.2-2' }}</p>
+					<p class="text-xs text-slate-500">Net drawdown threshold</p>
+				</div>
+			</div>
+		} @else {
+			<p class="mt-4 text-xs text-slate-400">No limits available yet.</p>
+		}
+	</section>
+
+	<section ktuiCard="surface" class="p-6 shadow-lg shadow-cyan-500/10">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Kill Switches</h2>
+			<span class="text-xs text-slate-500">Manual overrides · Client side placeholder</span>
+		</div>
+		<div class="mt-4 grid gap-4 sm:grid-cols-3">
+			@for (toggle of killSwitches(); track toggle.id) {
+				<button type="button" ktuiCard="surface" class="border px-4 py-4 text-left transition" [ngClass]="toggle.engaged ? 'border-rose-500/60 bg-rose-500/10 text-rose-200' : 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'" (click)="toggleSwitch(toggle.id)">
+					<p class="text-sm font-semibold">{{ toggle.label }}</p>
+					<p class="mt-1 text-xs text-current/70">{{ toggle.description }}</p>
+					<span class="mt-3" [ktuiBadge]="toggle.engaged ? 'danger' : 'success'">{{ toggle.engaged ? 'Engaged' : 'Ready' }}</span>
+				</button>
+			}
+		</div>
+	</section>
+
+	<section ktuiCard="glass" class="p-6 shadow-lg shadow-fuchsia-500/10">
+		<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Circuit Breaker</h2>
+		<div class="mt-4 grid gap-4 md:grid-cols-[1fr_280px]">
+			<div ktuiCard="surface" class="flex flex-col gap-4 p-4">
+				<div>
+					<p class="text-xs uppercase tracking-[0.3em] text-slate-400">Connection</p>
+					<p class="mt-2 text-lg font-semibold text-slate-100">{{ connectionState() | titlecase }}</p>
+					<p class="text-xs text-slate-500">WebSocket health status</p>
+				</div>
+				<div class="grid gap-3 rounded-xl border border-white/5 bg-slate-950/60 p-3 text-xs text-slate-400">
+					<p class="text-[10px] uppercase tracking-[0.3em] text-slate-500">Stream Activity</p>
+					<div class="grid grid-cols-3 gap-2 text-center">
+						<div>
+							<p class="text-lg font-semibold text-cyan-200">{{ streamActivity().signals.count }}</p>
+							<p>Signals</p>
+							<p class="text-[10px] text-slate-500">Last {{ streamActivity().signals.lastTs ? (streamActivity().signals.lastTs | date:'shortTime') : '—' }}</p>
+						</div>
+						<div>
+							<p class="text-lg font-semibold text-emerald-200">{{ streamActivity().executions.count }}</p>
+							<p>Executions</p>
+							<p class="text-[10px] text-slate-500">Last {{ streamActivity().executions.lastTs ? (streamActivity().executions.lastTs | date:'shortTime') : '—' }}</p>
+						</div>
+						<div>
+							<p class="text-lg font-semibold text-amber-200">{{ streamActivity().alerts.count }}</p>
+							<p>Alerts</p>
+							<p class="text-[10px] text-slate-500">Last {{ streamActivity().alerts.lastTs ? (streamActivity().alerts.lastTs | date:'shortTime') : '—' }}</p>
+						</div>
+					</div>
+					<p class="text-[10px] text-slate-500">Updated {{ streamActivity().lastUpdatedTs ? (streamActivity().lastUpdatedTs | date:'short') : '—' }}</p>
+				</div>
+			</div>
+			<div ktuiCard="surface" class="p-4">
+				<p class="text-xs uppercase tracking-[0.3em] text-slate-400">Breaker Status</p>
+				<p class="mt-2 text-lg font-semibold" [ngClass]="circuitBreakerStatus().tone">{{ circuitBreakerStatus().status }}</p>
+				<p class="text-xs text-slate-400">{{ circuitBreakerStatus().detail }}</p>
+			</div>
+		</div>
+	</section>
+
+	<section ktuiCard="surface" class="p-6 shadow-lg shadow-amber-500/10">
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<h2 class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Alerts</h2>
+			<span class="text-xs text-slate-500">Last {{ alertHistory().length }} received</span>
+		</div>
+		<div class="mt-4 overflow-hidden rounded-2xl border border-white/5">
+			<table class="min-w-full divide-y divide-white/10 text-left text-sm">
+				<thead class="bg-white/5 text-xs uppercase tracking-[0.3em] text-slate-400">
+					<tr>
+						<th class="px-4 py-3">Timestamp</th>
+						<th class="px-4 py-3">Type</th>
+						<th class="px-4 py-3">Severity</th>
+						<th class="px-4 py-3">Detail</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-white/5">
+					@for (alert of alertHistory(); track trackAlert($index, alert)) {
+						<tr class="bg-slate-900/40 hover:bg-slate-900/70">
+							<td class="px-4 py-3 text-xs text-slate-400">{{ alert.ts | date:'short' }}</td>
+							<td class="px-4 py-3 text-xs font-semibold tracking-[0.2em] text-slate-300">{{ alert.type }}</td>
+							<td class="px-4 py-3 text-xs">
+								<span [ktuiBadge]="alertSeverityBadge(alert.severity)">{{ alert.severity }}</span>
+							</td>
+							<td class="px-4 py-3 text-sm text-slate-200">{{ alert.detail ?? '—' }}</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+		@if (!alertHistory().length) {
+			<p class="mt-3 text-xs text-slate-500">No alerts received during this session.</p>
+		}
+	</section>
+</div>
