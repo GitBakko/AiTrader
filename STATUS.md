@@ -36,9 +36,9 @@
   - [x] Implement modules: Trader Desk, Risk Console, Backtest Lab (stubs)
   - [x] WebSocket client consuming `/ws` streams, render tables per contracts
 - [ ] Step 9 — DevOps & observability
-  - [ ] Update `docker-compose`, Prometheus scrape, Seq config
-  - [ ] Draft CI tasks (dotnet, Python, SQL lint, Docker build, SAST)
-  - [ ] Document runbooks & environment bootstrap
+  - [x] Update `docker-compose`, Prometheus scrape, Seq config
+  - [x] Draft CI tasks (dotnet, Python, SQL lint, Docker build, SAST)
+  - [x] Document runbooks & environment bootstrap
 - [ ] Step 10 — Validation & handoff
   - [ ] Run unit/integration tests across services
   - [ ] Verify Alpha Vantage limiter, risk gates, and WebSocket broadcast
@@ -138,6 +138,12 @@
 - Adjusted `nebula-shell` main grid so the feature outlet spans the entire primary column instead of occupying one cell, eliminating the collapsed Trader Desk column and restoring the sidebar width.
 - Normalized utility classes for the sidebar cards to use supported Tailwind values and ensured the main column flexes with `min-w-0` inside the grid.
 - Validation: `npm test -- --watch=false` (PASS — 4 specs, Chrome 140) confirming the layout changes keep the UI suite green.
+
+### 2025-09-30 — DevOps & observability baseline
+
+- Authored Dockerfiles for orchestrator, quant, and UI services; expanded `docker-compose` with SQL Server, Seq, Prometheus, and health checks wired to mounted configs/state.
+- Replaced Prometheus stub with a full scrape config, enriched Seq operational guide, and documented CI pipeline stages plus comprehensive FREE-mode runbooks.
+- Validation: `dotnet test` (orchestrator, Release), `python -m unittest discover -s quant-python/tests` (PASS — 3 tests), `npm test -- --watch=false --browsers=ChromeHeadless` (PASS — 4 specs) ensuring all stacks succeed under CI-aligned commands.
 
 ### 2025-09-29 — Git repository consolidation
 

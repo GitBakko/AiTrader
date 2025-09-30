@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "orchestrator"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["orchestrator:5010"]
+
+  - job_name: "seq"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["seq:80"]
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: seq

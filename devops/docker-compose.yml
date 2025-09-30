@@ -1,19 +1,112 @@
+name: ai-trader-free
 version: "3.9"
+
 services:
   orchestrator:
-    build: ../orchestrator-dotnet
+    build:
+      context: ../orchestrator-dotnet
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
     environment:
-      - ASPNETCORE_URLS=http://+:8080
-    ports: ["8080:8080"]
-    depends_on: [seq]
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5010
+      ORCHESTRATOR_SQL_CONNECTION: ${DB_CONNECTION_STRING}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY}
+      ALPHAVANTAGE_API_KEY: ${ALPHAVANTAGE_API_KEY}
+      Providers__FreeModeConfigPath: /opt/ai-trader/configs/free_mode.yaml
+      Providers__AlphaVantageLimiterStatePath: /opt/ai-trader/state/alphavantage_limiter.json
+    ports:
+      - "5010:5010"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      seq:
+        condition: service_started
+    volumes:
+      - ../configs:/opt/ai-trader/configs:ro
+      - ../state:/opt/ai-trader/state
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5010/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  ui:
+    build:
+      context: ../ui-angular/nebula-pulse
+      dockerfile: Dockerfile
+    ports:
+      - "4301:80"
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    restart: unless-stopped
+
+  quant:
+    build:
+      context: ../quant-python
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      PYTHONPATH: /app
+    command: ["tail", "-f", "/dev/null"]
+    volumes:
+      - ../quant-python:/app
+    depends_on:
+      orchestrator:
+        condition: service_started
+    restart: unless-stopped
+
   seq:
-    image: datalust/seq:latest
+    image: datalust/seq:2024.2
+    ports:
+      - "5341:80"
+    volumes:
+      - seq-data:/data
     environment:
-      - ACCEPT_EULA=Y
-    ports: ["5341:80"]
+      ACCEPT_EULA: "Y"
+    restart: unless-stopped
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    env_file:
+      - ../.env
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
-    ports: ["1433:1433"]
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      SA_PASSWORD: ${SA_PASSWORD:?SA_PASSWORD not set}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD}", "-Q", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ../observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      orchestrator:
+        condition: service_started
+    restart: unless-stopped
+
+networks:
+  default:
+    name: ai-trader-net
+
+volumes:
+  seq-data:
+  sql-data:
