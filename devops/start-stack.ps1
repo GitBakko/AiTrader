@@ -25,7 +25,8 @@ if (-not (Test-Path $limiterPath)) {
 $limiterRaw = Get-Content -Path $limiterPath -Raw
 $limiterState = $limiterRaw | ConvertFrom-Json
 $currentUtc = (Get-Date).ToUniversalTime()
-$limiterDateTime = [DateTime]::SpecifyKind([DateTime]::Parse($limiterState.DateUtc), [DateTimeKind]::Utc)
+$limiterDateTime = [DateTime]::Parse($limiterState.DateUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal)
+$limiterDateTime = [DateTime]::SpecifyKind($limiterDateTime, [DateTimeKind]::Utc)
 $limiterDate = $limiterDateTime.Date
 $used = [int]$limiterState.Used
 

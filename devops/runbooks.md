@@ -132,9 +132,30 @@ Dashboard: `http://localhost:9090`
 
 ### 5.3 Alerting
 
-- Built-in rules: see `observability/alert.rules.yml` (`OrchestratorDown`, `NoSignalsInTenMinutes`, `AlertFlood`). These fire inside Prometheus and require an Alertmanager target for notifications.
-- To route alerts, provide `--alertmanager.url=http://alertmanager:9093` via compose override or update the Prometheus service command. A sample Alertmanager container can be added alongside email/Teams/webhook receivers.
-- Keep manual runbook drills: validate `/schemas/ws/alert.ws.schema.json` payloads, and escalate if latency exceeds 80 ms or risk breaches break tolerance windows.
+- Built-in rules live in `observability/alert.rules.yml` (`OrchestratorDown`, `NoSignalsInTenMinutes`, `AlertFlood`) and are evaluated by Prometheus every 15 seconds.
+- Alertmanager (`prom/alertmanager:v0.27.0`) ships with the stack and loads `observability/alertmanager.yml`, routing notifications to the webhook echo receiver at `http://localhost:8085/alerts` and—once SMTP credentials are provided—to `bakko.posta@gmail.com`.
+- Prometheus picks up Alertmanager targets from `observability/prometheus.yml` (`alerting.alertmanagers`). No CLI flags are required.
+- Populate the following variables in `.env` before (re)starting the stack to enable email delivery (use an app password when authenticating with Gmail):
+   - `ALERT_SMTP_SMARTHOST=smtp.gmail.com:587`
+   - `ALERT_SMTP_FROM="AiTrader Alerts <bakko.posta@gmail.com>"`
+   - `ALERT_SMTP_USERNAME=bakko.posta@gmail.com`
+   - `ALERT_SMTP_PASSWORD=<16-character app password>`
+- After updating the `.env`, generate the runtime configuration:
+
+   ```powershell
+   pwsh ./render-alertmanager.ps1
+   ```
+
+   This creates `observability/alertmanager.rendered.yml` (git-ignored) with the active SMTP credentials.
+- Once the credentials are in place, run `docker compose restart alertmanager` to pick up changes and send a drill alert to confirm the inbox receives it.
+- Drill procedure:
+   1. Send a synthetic alert to exercise the route:
+
+       ```powershell
+       docker run --rm --network ai-trader-net curlimages/curl:8.10.1 -s -X POST -H "Content-Type: application/json" -d '[{"labels":{"alertname":"ManualTestAlert","severity":"info"},"annotations":{"summary":"Manual trigger for webhook validation"},"startsAt":"2025-09-30T10:00:00Z","endsAt":"2025-09-30T11:00:00Z"}]' http://alertmanager:9093/api/v2/alerts
+       ```
+
+   2. Inspect `docker logs alertreceiver` to confirm delivery and payload shape. Escalate if latency exceeds the 80 ms tick→order target or if risk breaches persist beyond configured stops.
 
 ## 6. Full stack bring-up
 

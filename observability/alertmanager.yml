@@ -1,0 +1,24 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: "${ALERT_SMTP_SMARTHOST}"
+  smtp_from: "${ALERT_SMTP_FROM}"
+  smtp_auth_username: "${ALERT_SMTP_USERNAME}"
+  smtp_auth_password: "${ALERT_SMTP_PASSWORD}"
+  smtp_require_tls: true
+
+route:
+  receiver: alert-default
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 30m
+
+receivers:
+  - name: alert-default
+    webhook_configs:
+      - url: http://alertreceiver:8080/alerts
+        send_resolved: true
+    email_configs:
+      - to: "bakko.posta@gmail.com"
+        headers:
+          subject: 'AiTrader Alert'

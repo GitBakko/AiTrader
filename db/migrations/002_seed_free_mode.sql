@@ -1,3 +1,6 @@
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+
 -- Migration 002: seed FREE-mode instruments and risk limits
 
 -- Instruments

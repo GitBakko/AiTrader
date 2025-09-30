@@ -162,3 +162,22 @@
 - Removed nested Git metadata (`ui-angular/nebula-pulse/.git`) so the workspace is tracked exclusively by the root repository per deployment checklist.
 - Verified cleanup via `Get-ChildItem -Recurse -Directory -Force | Where-Object Name -eq '.git'`, confirming only the root `.git` directory remains.
 - Ready to stage, commit, and push the consolidated workspace to `origin` without submodule conflicts.
+
+### 2025-09-30 — Stack bring-up & quota snapshot
+
+- Fixed SQL Server health probe by switching to `/opt/mssql-tools18/bin/sqlcmd` with `-C` trust flag, created the `AiTrader` database, and replayed schema/seed migrations inside the container.
+- Updated `.env` connection string to target the dockerized `sqlserver` host, removed the deprecated compose `version`, installed `curl` in the orchestrator image for health checks, and idled the quant service via `tail -f /dev/null` entrypoint.
+- Ran `devops/start-stack.ps1 -EnvFile .env -Force`, confirming orchestrator/UI/Prometheus/Seq services are healthy and reachable; Alpha Vantage limiter reports `Used=25` so further commodity pulls must wait for the next 00:00 UTC reset before rerunning without `-Force`.
+
+### 2025-09-30 — Alertmanager wiring & drill
+
+- Expanded `devops/docker-compose.yml` with `alertmanager` (`prom/alertmanager:v0.27.0`) and a webhook echo receiver (`mendhak/http-https-echo:30`) to capture notifications during drills.
+- Pointed Prometheus `alerting.alertmanagers` to the new service and authored `observability/alertmanager.yml` to route alerts to `http://alertreceiver:8080/alerts`, replacing the deprecated `--alertmanager.url` CLI flag.
+- Validated end-to-end delivery by launching the stack, observing the live `NoSignalsInTenMinutes` alert, and injecting a manual `ManualTestAlert` via `docker run --rm --network ai-trader-net curlimages/curl:8.10.1 …`, confirming receipt in `docker logs ai-trader-free-alertreceiver-1`.
+- Added an email receiver for `bakko.posta@gmail.com` leveraging SMTP settings passed through `.env`; Alertmanager now fans out notifications to both the webhook drill target and the on-call inbox once credentials are supplied.
+
+### 2025-09-30 — Alertmanager SMTP drill rerun
+
+- Regenerated the rendered Alertmanager configuration from the template using the latest `.env`, then force-restarted the container to pick up the refreshed credentials.
+- Fired `ManualSMTPDrill` through the Alertmanager v2 API and confirmed webhook fan-out in `alertreceiver` logs (payload fingerprint `25f7e16bb4561e41`).
+- Pending confirmation: check `bakko.posta@gmail.com` for the "AiTrader Alert" message and acknowledge within the on-call rotation.

@@ -5,6 +5,7 @@
 .env.*
 .vscode/
 *.code-workspace
+observability/alertmanager.rendered.yml
 
 # OS artifacts
 Thumbs.db
