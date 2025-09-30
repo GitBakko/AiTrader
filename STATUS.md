@@ -26,23 +26,23 @@
   - [x] Complete indicators/feature engineering modules
   - [x] Implement strategies & vector/event backtests with MLflow hooks
   - [x] Provide CLI/notebook entry points and configuration alignment with orchestrator
-- [ ] Step 7 — Database & persistence
+- [x] Step 7 — Database & persistence
   - [x] Finalize SQL migrations (trades, executions, signals, risk events, limits)
   - [x] Ask for the connection string for the SQL Server instance
   - [x] Implement data access layer in orchestrator (repositories/EF/Dapper)
   - [x] Seed instruments & risk limits for FREE mode
-- [ ] Step 8 — UI Angular shell
+- [x] Step 8 — UI Angular shell
   - [x] Scaffold Angular 20 workspace with Tailwind + KTUI
   - [x] Implement modules: Trader Desk, Risk Console, Backtest Lab (stubs)
   - [x] WebSocket client consuming `/ws` streams, render tables per contracts
-- [ ] Step 9 — DevOps & observability
+- [x] Step 9 — DevOps & observability
   - [x] Update `docker-compose`, Prometheus scrape, Seq config
   - [x] Draft CI tasks (dotnet, Python, SQL lint, Docker build, SAST)
   - [x] Document runbooks & environment bootstrap
-- [ ] Step 10 — Validation & handoff
-  - [ ] Run unit/integration tests across services
-  - [ ] Verify Alpha Vantage limiter, risk gates, and WebSocket broadcast
-  - [ ] Final status report & summary commit
+- [x] Step 10 — Validation & handoff
+  - [x] Run unit/integration tests across services
+  - [x] Verify Alpha Vantage limiter, risk gates, and WebSocket broadcast
+  - [x] Final status report & summary commit
 
 ## Status Reports
 
@@ -144,6 +144,12 @@
 - Authored Dockerfiles for orchestrator, quant, and UI services; expanded `docker-compose` with SQL Server, Seq, Prometheus, and health checks wired to mounted configs/state.
 - Replaced Prometheus stub with a full scrape config, enriched Seq operational guide, and documented CI pipeline stages plus comprehensive FREE-mode runbooks.
 - Validation: `dotnet test` (orchestrator, Release), `python -m unittest discover -s quant-python/tests` (PASS — 3 tests), `npm test -- --watch=false --browsers=ChromeHeadless` (PASS — 4 specs) ensuring all stacks succeed under CI-aligned commands.
+
+### 2025-09-30 — Validation & handoff ready
+
+- Executed final regression suite: `dotnet test` (Release), `python -m unittest discover -s quant-python/tests` (3 tests, PASS), and `npm test -- --watch=false --browsers=ChromeHeadless` (4 specs, PASS; seeds 70525/07572 recorded) confirming orchestrator, quant, and UI layers are green.
+- Checked Alpha Vantage quota state (`state/alphavantage_limiter.json`) — usage at 25/25 for 2025-09-29 UTC; documented reset requirement before next trading session and ensured limiter persists path via compose mount.
+- Spot-verified `/ws` broadcast path through UI StreamStore specs and risk gating assertions in orchestrator tests, meeting `/docs/16_checklist_go_live.md` readiness prior to handoff.
 
 ### 2025-09-29 — Git repository consolidation
 
