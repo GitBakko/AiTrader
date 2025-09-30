@@ -1,0 +1,28 @@
+groups:
+  - name: ai-trader-runtime
+    rules:
+      - alert: OrchestratorDown
+        expr: up{job="orchestrator"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Orchestrator service is unreachable"
+          description: "Prometheus has failed to scrape the orchestrator /metrics endpoint for at least 2 minutes. Check container health and restart if necessary."
+
+      - alert: NoSignalsInTenMinutes
+        expr: absent(orchestrator_signals_total) or increase(orchestrator_signals_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No trading signals emitted"
+          description: "No strategy signals have been emitted in the last 10 minutes. Validate provider feeds, strategy host status, and risk gates."
+
+      - alert: AlertFlood
+        expr: increase(orchestrator_alerts_total[5m]) > 10
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alert volume spike"
+          description: "More than 10 alerts were emitted in 5 minutes. Investigate risk breaches or connectivity issues."

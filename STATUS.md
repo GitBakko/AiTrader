@@ -151,6 +151,12 @@
 - Checked Alpha Vantage quota state (`state/alphavantage_limiter.json`) — usage at 25/25 for 2025-09-29 UTC; documented reset requirement before next trading session and ensured limiter persists path via compose mount.
 - Spot-verified `/ws` broadcast path through UI StreamStore specs and risk gating assertions in orchestrator tests, meeting `/docs/16_checklist_go_live.md` readiness prior to handoff.
 
+### 2025-09-30 — Runtime automation & alerts
+
+- Added `devops/start-stack.ps1` to orchestrate Docker Compose bring-up with Alpha Vantage quota guard (`-WaitForReset` / `-Force`) and environment sourcing via `.env`.
+- Extended runbooks with quota reset checklist, documented Prometheus alert routing, and introduced curated Prometheus rules (`OrchestratorDown`, `NoSignalsInTenMinutes`, `AlertFlood`).
+- Updated `docker-compose` and Prometheus configuration to ship alert rules, enabling integration with Alertmanager or downstream notification channels.
+
 ### 2025-09-29 — Git repository consolidation
 
 - Removed nested Git metadata (`ui-angular/nebula-pulse/.git`) so the workspace is tracked exclusively by the root repository per deployment checklist.

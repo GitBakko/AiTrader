@@ -16,6 +16,8 @@ $env:Providers__AlphaVantageLimiterStatePath="d:/Develop/AI/Trader/state/alphava
 dotnet run --project src/Orchestrator.csproj --urls "http://localhost:5010"
 ```
 
+> **Alpha Vantage quota guard:** Before launching, confirm `state/alphavantage_limiter.json` references the current UTC date with `"Used" < 25`. If the file still shows yesterday’s date at 25/25, wait for the 00:00 UTC reset or manually decrement only when an extra allowance exists (document the override in Seq).
+
 Health check: `GET http://localhost:5010/health`
 Metrics: `GET http://localhost:5010/metrics`
 WebSocket: `ws://localhost:5010/ws`
@@ -128,10 +130,11 @@ docker compose -f devops/docker-compose.yml up prometheus
 
 Dashboard: `http://localhost:9090`
 
-### 5.3 Alerting (manual)
+### 5.3 Alerting
 
-- Evaluate alert thresholds with `/schemas/ws/alert.ws.schema.json` payloads.
-- Escalate to on-call once latency > 80ms or risk breaches exceed tolerance.
+- Built-in rules: see `observability/alert.rules.yml` (`OrchestratorDown`, `NoSignalsInTenMinutes`, `AlertFlood`). These fire inside Prometheus and require an Alertmanager target for notifications.
+- To route alerts, provide `--alertmanager.url=http://alertmanager:9093` via compose override or update the Prometheus service command. A sample Alertmanager container can be added alongside email/Teams/webhook receivers.
+- Keep manual runbook drills: validate `/schemas/ws/alert.ws.schema.json` payloads, and escalate if latency exceeds 80 ms or risk breaches break tolerance windows.
 
 ## 6. Full stack bring-up
 
