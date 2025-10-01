@@ -115,6 +115,46 @@
 		</div>
 	</section>
 
+	<section ktuiCard="surface" class="rounded-3xl p-6 shadow-lg shadow-violet-500/10">
+		<div class="flex flex-wrap items-center justify-between gap-4">
+			<div>
+				<h3 class="text-xs uppercase tracking-[0.35em] text-slate-400">Signal Price Trail</h3>
+				<p class="text-xs text-slate-500">Entry, stop, and realised ticks per instrument</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				@for (instrument of instrumentOptions(); track instrument) {
+					<button
+						type="button"
+						[ktuiPill]="selectedInstrument() === instrument ? 'primary' : 'muted'"
+						class="text-xs"
+						(click)="selectInstrument(instrument)"
+					>
+						<span>{{ instrument }}</span>
+					</button>
+				}
+			</div>
+		</div>
+
+		<div class="mt-5">
+			@if (selectedChartData(); as chart) {
+				<nebula-signal-chart
+					[points]="chart.points"
+					[entry]="chart.entry"
+					[stop]="chart.stop"
+					[target]="chart.target"
+					[side]="chart.side"
+				></nebula-signal-chart>
+				<div class="mt-4 grid gap-3 text-[11px] uppercase tracking-[0.25em] text-slate-400 sm:grid-cols-3">
+					<p><span class="font-semibold text-cyan-200">Entry</span> {{ chart.entry | number:'1.2-2' }}</p>
+					<p><span class="font-semibold text-rose-200">Stop</span> {{ chart.stop | number:'1.2-2' }}</p>
+					<p><span class="font-semibold text-emerald-200">Target</span> {{ chart.target ?? '—' }}</p>
+				</div>
+			} @else {
+				<p class="text-sm text-slate-400">Waiting for enough signal history to chart instrument levels.</p>
+			}
+		</div>
+	</section>
+
 	<div class="grid gap-6 xl:grid-cols-2">
 		<section ktuiCard="surface" class="rounded-3xl p-6 shadow-lg shadow-cyan-500/10">
 			<div class="flex flex-wrap items-center justify-between gap-3">
@@ -138,7 +178,15 @@
 						</thead>
 						<tbody class="divide-y divide-white/5">
 							@for (row of signalRows(); track trackSignal($index, row); let idx = $index) {
-								<tr class="bg-slate-900/40 hover:bg-slate-900/70">
+								<tr
+									class="cursor-pointer bg-slate-900/40 transition-colors hover:bg-slate-900/70"
+									[ngClass]="{ 'bg-slate-900/80': selectedInstrument() === row.instrument }"
+									(click)="selectInstrument(row.instrument)"
+									role="button"
+									tabindex="0"
+									(keydown.enter)="selectInstrument(row.instrument)"
+									(keydown.space)="selectInstrument(row.instrument); $event.preventDefault()"
+								>
 									<td class="px-4 py-3 text-xs text-slate-400">{{ row.ts | date:'short' }}</td>
 									<td class="px-4 py-3 font-semibold">{{ row.instrument }}</td>
 									<td class="px-4 py-3 text-xs tracking-[0.2em] text-slate-400">{{ row.strategy }}</td>

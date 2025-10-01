@@ -14,6 +14,10 @@ public record TradeEvent(DateTime TimestampUtc, string Symbol, decimal Price, de
 
 public record KlineEvent(DateTime TimestampUtc, string Symbol, decimal Open, decimal High, decimal Low, decimal Close, decimal Volume, DateTime StartTimeUtc, DateTime CloseTimeUtc, bool IsFinal) : IEvent;
 
+public record PriceBar(string Symbol, string Interval, DateTime StartTimeUtc, DateTime CloseTimeUtc, decimal Open, decimal High, decimal Low, decimal Close, decimal Volume);
+
+public record PriceHistorySnapshotEvent(DateTime TimestampUtc, string Symbol, string Interval, IReadOnlyList<PriceBar> Points) : IEvent;
+
 public record CommoditySnapshotEvent(DateTime TimestampUtc, string Symbol, decimal Price, string Source) : IEvent;
 
 public record StrategySignalEvent(DateTime TimestampUtc, StrategySignal Signal) : IEvent;

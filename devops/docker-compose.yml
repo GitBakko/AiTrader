@@ -51,7 +51,7 @@ services:
       - ../.env
     environment:
       PYTHONPATH: /app
-    command: ["tail", "-f", "/dev/null"]
+    entrypoint: ["tail", "-f", "/dev/null"]
     volumes:
       - ../quant-python:/app
     depends_on:

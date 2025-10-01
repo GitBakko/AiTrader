@@ -1,0 +1,77 @@
+<div class="chart-shell">
+	@if (!hasData()) {
+		<p class="text-sm text-slate-400">Waiting for enough history to render the chart…</p>
+	} @else {
+		<svg class="h-40 w-full" [attr.viewBox]="viewBox" preserveAspectRatio="none">
+			<defs>
+				<linearGradient id="price-gradient" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0" stop-color="#a855f7" stop-opacity="0.45"></stop>
+					<stop offset="1" stop-color="#a855f7" stop-opacity="0"></stop>
+				</linearGradient>
+			</defs>
+			<rect
+				[attr.x]="paddingX"
+				[attr.y]="paddingY"
+				[attr.width]="width - paddingX * 2"
+				[attr.height]="height - paddingY * 2"
+				rx="10"
+				fill="rgba(15,23,42,0.32)"
+				stroke="rgba(148,163,184,0.15)"
+				stroke-width="1"
+			></rect>
+
+			@for (level of levels(); track level.key) {
+				<line
+					[attr.x1]="paddingX"
+					[attr.x2]="width - paddingX"
+					[attr.y1]="level.y"
+					[attr.y2]="level.y"
+					[attr.stroke]="level.color"
+					stroke-width="1.5"
+					stroke-dasharray="4 4"
+					stroke-linecap="round"
+				></line>
+				<text
+					[attr.x]="width - paddingX + 6"
+					[attr.y]="level.y + 4"
+					[attr.fill]="level.color"
+					class="level-label"
+				>
+					{{ level.label }} {{ level.value | number:'1.2-2' }}
+				</text>
+			}
+
+			@if (pricePath(); as path) {
+				<path
+					[attr.d]="path"
+					stroke="#c4b5fd"
+					stroke-width="2.2"
+					fill="none"
+					stroke-linejoin="round"
+					stroke-linecap="round"
+				></path>
+			}
+
+			@for (point of plottedPoints(); track point.ts) {
+				<circle [attr.cx]="point.x" [attr.cy]="point.y" r="2.3" fill="#c4b5fd" fill-opacity="0.85"></circle>
+			}
+
+			@if (latestPoint(); as latest) {
+				<circle
+					[attr.cx]="latest.x"
+					[attr.cy]="latest.y"
+					r="3.3"
+					[attr.fill]="sideColor()"
+					fill-opacity="0.95"
+				></circle>
+			}
+		</svg>
+
+		@if (timestamps(); as time) {
+			<div class="mt-2 flex justify-between text-[11px] font-medium text-slate-500">
+				<span>{{ time.start | date:'HH:mm:ss' }}</span>
+				<span>{{ time.end | date:'HH:mm:ss' }}</span>
+			</div>
+		}
+	}
+</div>

@@ -1,10 +1,11 @@
 import { DestroyRef, Injectable, Signal, WritableSignal, computed, inject, signal } from '@angular/core';
 import { EventStreamService } from '../services/event-stream.service';
-import type { AlertEvent, ExecutionEvent, SignalEvent } from '../models/stream-events.model';
+import type { AlertEvent, ExecutionEvent, PriceEvent, PricePoint, SignalEvent } from '../models/stream-events.model';
 
 const MAX_SIGNAL_HISTORY = 200;
 const MAX_EXECUTION_HISTORY = 200;
 const MAX_ALERT_HISTORY = 100;
+const MAX_PRICE_HISTORY = 720;
 
 @Injectable({ providedIn: 'root' })
 export class StreamStore {
@@ -14,10 +15,12 @@ export class StreamStore {
   private readonly signalsStore: WritableSignal<SignalEvent[]> = signal([]);
   private readonly executionsStore: WritableSignal<ExecutionEvent[]> = signal([]);
   private readonly alertsStore: WritableSignal<AlertEvent[]> = signal([]);
+  private readonly priceSeriesStore: WritableSignal<Record<string, PricePoint[]>> = signal({});
 
   readonly signals: Signal<SignalEvent[]> = this.signalsStore.asReadonly();
   readonly executions: Signal<ExecutionEvent[]> = this.executionsStore.asReadonly();
   readonly alerts: Signal<AlertEvent[]> = this.alertsStore.asReadonly();
+  readonly priceSeries: Signal<Record<string, PricePoint[]>> = this.priceSeriesStore.asReadonly();
 
   readonly latestSignal = computed(() => this.pickLast(this.signals()));
   readonly latestExecution = computed(() => this.pickLast(this.executions()));
@@ -67,10 +70,15 @@ export class StreamStore {
       this.pushEvent(this.alertsStore, event, MAX_ALERT_HISTORY);
     });
 
+    const priceSub = this.events.prices$.subscribe((event) => {
+      this.ingestPrices(event);
+    });
+
     this.destroyRef.onDestroy(() => {
       signalSub.unsubscribe();
       executionSub.unsubscribe();
       alertSub.unsubscribe();
+      priceSub.unsubscribe();
     });
   }
 
@@ -78,10 +86,16 @@ export class StreamStore {
     this.signalsStore.set([]);
     this.executionsStore.set([]);
     this.alertsStore.set([]);
+    this.priceSeriesStore.set({});
   }
 
   reconnect(): void {
     this.events.open();
+  }
+
+  getPriceSeries(instrument: string): PricePoint[] {
+    const series = this.priceSeries();
+    return series[instrument] ?? [];
   }
 
   halt(): void {
@@ -115,5 +129,44 @@ export class StreamStore {
     }
 
     return timestamps.reduce((latest, current) => (current > latest ? current : latest));
+  }
+
+  private ingestPrices(event: PriceEvent): void {
+    const sanitized = this.sanitizePoints(event.points);
+    if (!sanitized.length) {
+      return;
+    }
+
+    this.priceSeriesStore.update((current) => {
+      const next = { ...current };
+      next[event.instrument] = this.clampHistory(sanitized, MAX_PRICE_HISTORY);
+      return next;
+    });
+  }
+
+  private sanitizePoints(points: PricePoint[]): PricePoint[] {
+    const seen = new Set<string>();
+    const deduped: PricePoint[] = [];
+
+    for (const point of points) {
+      const key = `${point.start}-${point.end}`;
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      deduped.push(point);
+    }
+
+    deduped.sort((a, b) => a.end.localeCompare(b.end));
+    return deduped;
+  }
+
+  private clampHistory(points: PricePoint[], limit: number): PricePoint[] {
+    if (points.length <= limit) {
+      return [...points];
+    }
+
+    return points.slice(points.length - limit);
   }
 }

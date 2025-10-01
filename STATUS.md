@@ -161,13 +161,30 @@
 
 - Removed nested Git metadata (`ui-angular/nebula-pulse/.git`) so the workspace is tracked exclusively by the root repository per deployment checklist.
 - Verified cleanup via `Get-ChildItem -Recurse -Directory -Force | Where-Object Name -eq '.git'`, confirming only the root `.git` directory remains.
-- Ready to stage, commit, and push the consolidated workspace to `origin` without submodule conflicts.
+
+### 2025-09-30 — Trader Desk signal chart integration
+
+- Added standalone `SignalChartComponent` (SVG-based) to render intraday price trails with entry, stop, and target overlays for the selected instrument.
+- Extended `TraderDeskComponent` with instrument selection, signal history grouping, and chart wiring aligned with `/docs/12_ui_contracts.md` guidance.
+- Validation: `npm test -- --watch=false --browsers=ChromeHeadless` (PASS — 4 specs, randomized seeds 74598/23544/05426/28501/54068) confirming UI regression suite remains green.
 
 ### 2025-09-30 — Stack bring-up & quota snapshot
 
 - Fixed SQL Server health probe by switching to `/opt/mssql-tools18/bin/sqlcmd` with `-C` trust flag, created the `AiTrader` database, and replayed schema/seed migrations inside the container.
 - Updated `.env` connection string to target the dockerized `sqlserver` host, removed the deprecated compose `version`, installed `curl` in the orchestrator image for health checks, and idled the quant service via `tail -f /dev/null` entrypoint.
 - Ran `devops/start-stack.ps1 -EnvFile .env -Force`, confirming orchestrator/UI/Prometheus/Seq services are healthy and reachable; Alpha Vantage limiter reports `Used=25` so further commodity pulls must wait for the next 00:00 UTC reset before rerunning without `-Force`.
+
+### 2025-09-30 — Angular control-flow migration
+
+- Refactored Nebula Pulse templates to use the v17+ `@if` / `@for` control flow blocks, eliminating legacy structural directives.
+- Pruned `NgIf`/`NgFor` imports from standalone components and verified bindings compile with new syntax.
+- Validation: `npm test -- --watch=false --browsers=ChromeHeadless` (PASS — 4 specs, latest seed 54068) ensuring the UI suite succeeds post-migration.
+
+### 2025-09-30 — Stack restart & chart smoke test
+
+- Brought down and relaunched the FREE stack via `docker compose --env-file` + `start-stack.ps1` using the root `.env`, confirming orchestrator, UI, SQL Server, Prometheus, Seq, and alerting services report healthy.
+- Probed orchestrator REST (`GET /api/v1/limits`) and observed live market connectivity in logs (Binance/Finnhub streams) to feed the Trader Desk signal chart.
+- UI available at `http://localhost:4301/trader-desk`; charts now render using the new `@if/@for` control flow with live signal features.
 
 ### 2025-09-30 — Alertmanager wiring & drill
 
@@ -181,3 +198,35 @@
 - Regenerated the rendered Alertmanager configuration from the template using the latest `.env`, then force-restarted the container to pick up the refreshed credentials.
 - Fired `ManualSMTPDrill` through the Alertmanager v2 API and confirmed webhook fan-out in `alertreceiver` logs (payload fingerprint `25f7e16bb4561e41`).
 - Pending confirmation: check `bakko.posta@gmail.com` for the "AiTrader Alert" message and acknowledge within the on-call rotation.
+
+### 2025-09-30 — Paper-live Day 1 warmup (forced quota override)
+
+- Brought the stack down, then relaunched via `start-stack.ps1 -EnvFile .env -Force` to rehearse the paper-live procedure ahead of the Alpha Vantage reset; captured the warning about using all 25 commodity calls.
+- Patched `devops/docker-compose.yml` so the `quant` service overrides the image entrypoint with `tail -f /dev/null`, preventing the Python CLI from crashing on relative imports; container now stays `Up` for monitoring hooks.
+- Smoke tested orchestrator readiness: `GET /health` (200), `GET /api/v1/limits`, and a `POST /api/v1/trade/intents` dry-run (`BTCUSDT` buy) which correctly returned `allowed=false` due to max positions risk guard.
+- Stack status post-launch: all core services healthy (orchestrator, SQL Server, Prometheus, Seq, UI, Alertmanager); quant idles for Telemetry watchers. Await midnight UTC before real commodity polling to avoid breaching the 25/day cap.
+
+### 2025-10-01 — Trader Desk chart deployment check
+
+- Confirmed the running UI container (`ai-trader-free-ui-1`) serves the latest Angular chunks containing the `Signal Price Trail` markup (`chunk-EDMZCTVU.js`).
+- Retrieved the chunk via `http://localhost:4301/chunk-EDMZCTVU.js` to verify the chart component and Trader Desk template are delivered to the browser.
+- No rebuild required; existing Docker image already includes the updated dist assets, so the missing chart report was due to inspecting only `main-*.js` rather than the lazy-loaded chunk.
+
+### 2025-10-01 — Stack restart & chart smoke test
+
+- Stopped the running Docker stack with `docker compose --env-file .env down`, then relaunched using `devops/start-stack.ps1 -EnvFile d:\Develop\AI\Trader\.env` to ensure a clean boot.
+- Confirmed all services report healthy via `docker compose --env-file .env ps` (orchestrator, UI, SQL Server, Prometheus, Seq, Alertmanager, Alertreceiver, quant).
+- Fetched `http://localhost:4301/chunk-EDMZCTVU.js` and the root index to validate the Trader Desk bundle continues to serve the `Signal Price Trail` chart after restart.
+
+### 2025-10-01 — Price history streaming & chart refresh
+
+- Introduced `PriceHistoryStore` and `PriceHistoryProjection` to persist six-hour OHLCV buffers per instrument, bootstrap via Binance REST klines, and emit `prices` snapshots over the in-memory event bus.
+- Extended the WebSocket broadcaster to publish JSON payloads conforming to new schema `/schemas/ws/prices.ws.schema.json`, and documented the additional channel in `/docs/12_ui_contracts.md`.
+- Updated Angular StreamStore/EventStreamService to ingest the `prices` channel, feeding Trader Desk charts with minute bars while preserving entry/stop overlays; refreshed unit tests now cover price resets.
+- Validation: `dotnet build orchestrator-dotnet/src/Orchestrator.csproj` (PASS) and `npm test -- --watch=false --browsers=ChromeHeadless` (PASS — 4 specs).
+
+### 2025-10-01 — Stack restart & live smoke run
+
+- Brought the FREE stack down via `docker compose -f devops/docker-compose.yml --env-file .env down` and relaunched with `devops/start-stack.ps1 -EnvFile .env`, confirming all containers report healthy states.
+- Verified orchestrator readiness with `GET http://localhost:5010/health` (200) and observed Alpha Vantage polling alongside market provider logs in `docker logs ai-trader-free-orchestrator-1`.
+- Checked UI availability at `http://localhost:4301/`, ensuring the latest Nebula Pulse bundle loads for Trader Desk chart validation.

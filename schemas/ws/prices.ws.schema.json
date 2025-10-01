@@ -1,0 +1,65 @@
+{
+  "type": "object",
+  "properties": {
+    "channel": {
+      "const": "prices"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "instrument": {
+      "type": "string"
+    },
+    "interval": {
+      "type": "string"
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "open": {
+            "type": "number"
+          },
+          "high": {
+            "type": "number"
+          },
+          "low": {
+            "type": "number"
+          },
+          "close": {
+            "type": "number"
+          },
+          "volume": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume"
+        ]
+      }
+    }
+  },
+  "required": [
+    "channel",
+    "ts",
+    "instrument",
+    "interval",
+    "points"
+  ]
+}

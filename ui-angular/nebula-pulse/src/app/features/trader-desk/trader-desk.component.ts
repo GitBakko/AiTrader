@@ -1,16 +1,17 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe, NgClass, NgFor, NgIf, PercentPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe, NgClass, PercentPipe } from '@angular/common';
 import { KtuiBadgeDirective, KtuiCardDirective, KtuiPillDirective } from '../../ktui';
 import { Subscription } from 'rxjs';
 import { StreamStore } from '../../core/state/stream-store';
 import { OrchestratorApiService } from '../../core/services/orchestrator-api.service';
 import type { RiskLimits } from '../../core/models/risk.model';
 import type { ExecutionEvent, SignalEvent } from '../../core/models/stream-events.model';
+import { SignalChartComponent, type SignalChartPoint } from './signal-chart/signal-chart.component';
 
 @Component({
   selector: 'nebula-trader-desk',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, PercentPipe, NgClass, KtuiCardDirective, KtuiBadgeDirective, KtuiPillDirective],
+  imports: [DatePipe, DecimalPipe, PercentPipe, NgClass, KtuiCardDirective, KtuiBadgeDirective, KtuiPillDirective, SignalChartComponent],
   templateUrl: './trader-desk.component.html',
   styleUrl: './trader-desk.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -23,6 +24,59 @@ export class TraderDeskComponent {
 
   protected readonly signalRows = computed(() => this.tail(this.streamStore.signals(), 30));
   protected readonly executionRows = computed(() => this.tail(this.streamStore.executions(), 50));
+
+  protected readonly selectedInstrument = signal<string | null>(null);
+
+  protected readonly signalByInstrument = computed(() => {
+    const map = new Map<string, SignalEvent[]>();
+    for (const signal of this.signalRows()) {
+      const existing = map.get(signal.instrument);
+      if (existing) {
+        existing.push(signal);
+      } else {
+        map.set(signal.instrument, [signal]);
+      }
+    }
+    return map;
+  });
+
+  protected readonly instrumentOptions = computed(() => Array.from(this.signalByInstrument().keys()));
+
+  protected readonly selectedChartData = computed(() => {
+    const instrument = this.selectedInstrument();
+    if (!instrument) {
+      return null;
+    }
+
+    const history = this.signalByInstrument().get(instrument);
+    const latestSignal = history?.[0];
+    if (!latestSignal) {
+      return null;
+    }
+
+    const priceSeries = this.streamStore.getPriceSeries(instrument);
+    if (!priceSeries.length) {
+      return null;
+    }
+
+    const points: SignalChartPoint[] = priceSeries.map((point) => ({
+      ts: point.end,
+      price: point.close
+    }));
+
+    if (!points.length) {
+      return null;
+    }
+
+    return {
+      instrument,
+      points,
+      entry: latestSignal.recommended.entry,
+      stop: latestSignal.recommended.stop,
+      target: latestSignal.recommended.target ?? null,
+      side: latestSignal.recommended.side
+    } as const;
+  });
 
   protected readonly riskLimits = signal<RiskLimits | null>(null);
   protected readonly limitsError = signal<string | null>(null);
@@ -64,6 +118,22 @@ export class TraderDeskComponent {
   constructor() {
     this.fetchRiskLimits();
     this.destroyRef.onDestroy(() => this.limitsSubscription?.unsubscribe());
+
+    effect(() => {
+      const instruments = this.instrumentOptions();
+      const selected = this.selectedInstrument();
+
+      if (!instruments.length) {
+        if (selected !== null) {
+          this.selectedInstrument.set(null);
+        }
+        return;
+      }
+
+      if (!selected || !instruments.includes(selected)) {
+        this.selectedInstrument.set(instruments[0]);
+      }
+    });
   }
 
   refreshLimits(): void {
@@ -94,6 +164,10 @@ export class TraderDeskComponent {
       return 'text-amber-200';
     }
     return 'text-rose-200';
+  }
+
+  protected selectInstrument(instrument: string): void {
+    this.selectedInstrument.set(instrument);
   }
 
   private fetchRiskLimits(): void {

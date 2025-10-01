@@ -1,4 +1,4 @@
-export type StreamChannel = 'signals' | 'executions' | 'alerts';
+export type StreamChannel = 'signals' | 'executions' | 'alerts' | 'prices';
 
 export interface BaseStreamEvent {
   channel: StreamChannel;
@@ -51,4 +51,21 @@ export interface AlertEvent extends BaseStreamEvent {
   context?: Record<string, unknown>;
 }
 
-export type StreamEvent = SignalEvent | ExecutionEvent | AlertEvent;
+export interface PricePoint {
+  start: string;
+  end: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface PriceEvent extends BaseStreamEvent {
+  channel: 'prices';
+  instrument: string;
+  interval: string;
+  points: PricePoint[];
+}
+
+export type StreamEvent = SignalEvent | ExecutionEvent | AlertEvent | PriceEvent;

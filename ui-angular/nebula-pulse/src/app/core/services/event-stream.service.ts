@@ -4,6 +4,8 @@ import { getWebSocketBaseUrl } from './orchestrator-config';
 import type {
   AlertEvent,
   ExecutionEvent,
+  PriceEvent,
+  PricePoint,
   SignalEvent,
   StreamChannel,
   StreamEvent
@@ -34,6 +36,10 @@ export class EventStreamService {
 
   readonly alerts$: Observable<AlertEvent> = this.events$.pipe(
     filter((event): event is AlertEvent => event.channel === 'alerts')
+  );
+
+  readonly prices$: Observable<PriceEvent> = this.events$.pipe(
+    filter((event): event is PriceEvent => event.channel === 'prices')
   );
 
   readonly connectionState: Signal<ConnectionState> = this.stateSignal.asReadonly();
@@ -162,6 +168,8 @@ export class EventStreamService {
         return toExecutionEvent(value);
       case 'alerts':
         return toAlertEvent(value);
+    case 'prices':
+      return toPriceEvent(value);
     }
   }
 
@@ -191,7 +199,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isChannel(value: unknown): value is StreamChannel {
-  return value === 'signals' || value === 'executions' || value === 'alerts';
+  return value === 'signals' || value === 'executions' || value === 'alerts' || value === 'prices';
 }
 
 function toSignalEvent(value: Record<string, unknown>): SignalEvent | null {
@@ -297,5 +305,68 @@ function toAlertEvent(value: Record<string, unknown>): AlertEvent | null {
     severity: severity as AlertEvent['severity'],
     detail: typeof detail === 'string' ? detail : undefined,
     context: isRecord(context) ? context : undefined
+  };
+}
+
+function toPriceEvent(value: Record<string, unknown>): PriceEvent | null {
+  const instrument = value['instrument'];
+  const ts = value['ts'];
+  const interval = value['interval'];
+  const pointsRaw = value['points'];
+
+  if (typeof instrument !== 'string' || typeof ts !== 'string' || typeof interval !== 'string') {
+    return null;
+  }
+
+  if (!Array.isArray(pointsRaw)) {
+    return null;
+  }
+
+  const points: PricePoint[] = [];
+  for (const item of pointsRaw) {
+    if (!isRecord(item)) {
+      continue;
+    }
+
+    const start = item['start'];
+    const end = item['end'];
+    const open = item['open'];
+    const high = item['high'];
+    const low = item['low'];
+    const close = item['close'];
+    const volume = item['volume'];
+
+    if (typeof start !== 'string' || typeof end !== 'string') {
+      continue;
+    }
+
+    if (
+      typeof open !== 'number' ||
+      typeof high !== 'number' ||
+      typeof low !== 'number' ||
+      typeof close !== 'number'
+    ) {
+      continue;
+    }
+
+    const normalizedVolume = typeof volume === 'number' ? volume : 0;
+
+    points.push({
+      start,
+      end,
+      open,
+      high,
+      low,
+      close,
+      volume: normalizedVolume
+    });
+  }
+
+  return {
+    channel: 'prices',
+    ts,
+    instrument,
+    interval,
+    points: points.sort((a, b) => a.end.localeCompare(b.end))
   };
 }

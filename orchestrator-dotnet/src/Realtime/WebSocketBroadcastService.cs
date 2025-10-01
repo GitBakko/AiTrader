@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -36,6 +37,7 @@ public sealed class WebSocketBroadcastService : IHostedService, IDisposable
         _subscriptions.Add(_eventBus.Subscribe<StrategySignalEvent>(OnSignalAsync));
         _subscriptions.Add(_eventBus.Subscribe<ExecutionFillEvent>(OnExecutionAsync));
         _subscriptions.Add(_eventBus.Subscribe<AlertEvent>(OnAlertAsync));
+        _subscriptions.Add(_eventBus.Subscribe<PriceHistorySnapshotEvent>(OnPriceHistoryAsync));
         return Task.CompletedTask;
     }
 
@@ -124,6 +126,39 @@ public sealed class WebSocketBroadcastService : IHostedService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to broadcast alert event");
+        }
+    }
+
+    private async ValueTask OnPriceHistoryAsync(PriceHistorySnapshotEvent evt, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payload = JsonSerializer.Serialize(new Dictionary<string, object?>
+            {
+                ["channel"] = "prices",
+                ["ts"] = evt.TimestampUtc.ToString("O"),
+                ["instrument"] = evt.Symbol,
+                ["interval"] = evt.Interval,
+                ["points"] = evt.Points
+                    .OrderBy(point => point.StartTimeUtc)
+                    .Select(point => new Dictionary<string, object?>
+                    {
+                        ["start"] = point.StartTimeUtc.ToString("O"),
+                        ["end"] = point.CloseTimeUtc.ToString("O"),
+                        ["open"] = point.Open,
+                        ["high"] = point.High,
+                        ["low"] = point.Low,
+                        ["close"] = point.Close,
+                        ["volume"] = point.Volume
+                    })
+                    .ToArray()
+            }, _jsonOptions);
+
+            await _connections.BroadcastAsync(payload, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to broadcast price history event for {Symbol}", evt.Symbol);
         }
     }
 

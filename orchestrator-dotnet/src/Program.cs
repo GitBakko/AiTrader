@@ -36,6 +36,7 @@ builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("Da
 
 builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 builder.Services.AddSingleton<IMarketDataCache, MarketDataCache>();
+builder.Services.AddSingleton<IPriceHistoryStore, PriceHistoryStore>();
 builder.Services.AddSingleton<IFreeModeConfigProvider, FreeModeConfigProvider>();
 builder.Services.AddSingleton<IConfigureOptions<TradingOptions>, FreeModeTradingOptionsConfigurator>();
 builder.Services.AddSingleton<IRiskManager, DefaultRiskManager>();
@@ -52,12 +53,18 @@ builder.Services.AddHttpClient("AlphaVantage", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
 });
+builder.Services.AddHttpClient("BinancePublic", client =>
+{
+    client.BaseAddress = new Uri("https://api.binance.com");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 builder.Services.AddHostedService<BinanceWebSocketService>();
 builder.Services.AddHostedService<FinnhubWebSocketService>();
 builder.Services.AddHostedService<AlphaVantagePollingService>();
 builder.Services.AddHostedService<WebSocketBroadcastService>();
 builder.Services.AddHostedService<MetricsSubscriptionService>();
 builder.Services.AddHostedService<PersistenceSubscriptionService>();
+builder.Services.AddHostedService<PriceHistoryProjection>();
 
 const string UiCorsPolicy = "ui-cors";
 
